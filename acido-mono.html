@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>Simulador de Titulação de Ácido (Monoprótico) + Base Forte</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* Painel de configuração (Left) */
+        .setup-panel {
+            flex: 0 0 300px; /* Fixed width, no grow/shrink */
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .setup-panel h2 {
+            font-size: 1.5em;
+            margin-top: 0;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        /* Botões gerais */
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .add-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .add-btn:hover {
+            background-color: #218838;
+        }
+
+        .remove-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .remove-btn:hover {
+            background-color: #c82333;
+        }
+
+        .reset-btn-green {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .reset-btn-green:hover {
+            background-color: #218838;
+        }
+
+        /* Painel do meio (Middle) */
+        .middle-panel {
+            flex: 1; /* Takes remaining space */
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Barra de status (pH e volume) */
+        .status {
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status div {
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .status div span {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        /* Área do gráfico */
+        .plot-container {
+            width: 100%;
+            height: 450px;
+        }
+
+        #plot {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Wrapper para o erlenmeyer */
+        .erlenmeyer-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center; /* Centers the Erlenmeyer horizontally */
+        }
+
+        /* Container do erlenmeyer */
+        .erlenmeyer-container {
+            position: relative;
+            width: 250px; /* Keeps original width */
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            background: linear-gradient(145deg, #e6e9f0, #f5f7fa);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            perspective: 800px;
+        }
+
+        /* "bancada" abaixo do erlenmeyer */
+        .laboratory-surface {
+            position: absolute;
+            bottom: 20px;
+            width: 200px;
+            height: 5px;
+            background: linear-gradient(to right, #7f8c8d, #95a5a6, #7f8c8d);
+            border-radius: 3px;
+            z-index: 1;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .laboratory-surface::after {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 20px;
+            bottom: -20px;
+            background: linear-gradient(to bottom, rgba(127, 140, 141, 0.3), transparent);
+            border-radius: 50%;
+            filter: blur(5px);
+        }
+
+        /* Botões da bureta */
+        .buret-controls {
+            position: absolute;
+            right: 0px;
+            top: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .buret-btn {
+            padding: 8px 12px;
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .buret-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Tabela de indicadores (Right) */
+        .indicator-table {
+            flex: 0 0 350px; /* Fixed width, no grow/shrink */
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .indicator-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .indicator-table th,
+        .indicator-table td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.9em;
+        }
+
+        .indicator-table thead {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .indicator-table tbody tr:hover {
+            background-color: #f1f1f1;
+            cursor: pointer;
+        }
+
+        .indicator-table tbody tr.selected {
+            background-color: #d0e9ff;
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 0.8em;
+            color: #666;
+            text-align: center;
+        }
+
+        /* Botão de retorno */
+        .return-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 8px 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1000;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+        .return-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Sistema de ajuda */
+        .help-icon {
+            margin-left: 5px;
+            color: #007bff;
+            cursor: help;
+            border: 1px solid #007bff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+            text-align: center;
+            line-height: 16px;
+            font-size: 12px;
+            position: relative;
+        }
+
+        /* Estilo específico para o ícone de ajuda no cabeçalho da tabela */
+        .indicator-table thead .help-icon {
+            color: white;
+            border-color: white;
+        }
+
+        .help-text {
+            display: none;
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 1em;
+            max-width: 300px;
+            z-index: 1000;
+            left: 25px;
+            top: -5px;
+            pointer-events: none;
+            line-height: 1.4;
+        }
+
+        .help-icon:hover .help-text {
+            display: block;
+        }
+
+        .help-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Ajuda para elementos maiores */
+        .section-help {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+        }
+
+        .section-help .help-text {
+            width: 250px;
+            left: auto;
+            right: 25px;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="return-button">Voltar ao Menu Principal</a>
+    <h1>Simulador de Titulação de Ácido (Monoprótico) + Base Forte</h1>
+    <div class="container">
+        <!-- Painel de configuração (Left) -->
+        <div class="setup-panel">
+            <h2>Titulação</h2>
+            <div class="input-group">
+                <label>Ka do ácido (ex.: 1,78e-5)
+                    <div class="help-container">
+                        <span class="help-icon">?
+                            <span class="help-text">A constante de dissociação do ácido (Ka) indica o quão fraco é o ácido. Quanto menor o valor, mais fraco é o ácido. Por exemplo, para CH₃COOH, Ka = 1,78×10⁻⁵.</span>
+                        </span>
+                    </div>
+                </label>
+                <input type="number" id="Ka" value="1.78e-5" step="any">
+            </div>
+            <div class="input-group">
+                <label>Concentração do ácido (mol/L)
+                    <div class="help-container">
+                        <span class="help-icon">?
+                            <span class="help-text">Concentração inicial do ácido fraco em mol/L. Por exemplo, CH₃COOH 0,1 mol/L.</span>
+                        </span>
+                    </div>
+                </label>
+                <input type="number" id="Ca" value="0.1" step="0.01" min="0">
+            </div>
+            <div class="input-group">
+                <label>Volume do ácido (mL)
+                    <div class="help-container">
+                        <span class="help-icon">?
+                            <span class="help-text">Volume inicial da solução do ácido fraco em mililitros (mL). Este é o volume que está no erlenmeyer.</span>
+                        </span>
+                    </div>
+                </label>
+                <input type="number" id="Va" value="50" step="1" min="0">
+            </div>
+            <div class="input-group">
+                <label>Concentração da base (mol/L)
+                    <div class="help-container">
+                        <span class="help-icon">?
+                            <span class="help-text">Concentração da base forte em mol/L. Por exemplo, NaOH 0,1 mol/L.</span>
+                        </span>
+                    </div>
+                </label>
+                <input type="number" id="Cb" value="0.1" step="0.01" min="0">
+            </div>
+            <div class="input-group">
+                <label>Alíquota (mL)
+                    <div class="help-container">
+                        <span class="help-icon">?
+                            <span class="help-text">Volume de base adicionado a cada vez que o botão "Adicionar" é clicado. Também é o volume removido ao clicar em "Remover".</span>
+                        </span>
+                    </div>
+                </label>
+                <input type="number" id="aliquot" value="1" step="0.1" min="0">
+            </div>
+            <button class="reset-btn-green" onclick="resetTitration()">Resetar</button>
+        </div>
+
+        <!-- Painel do meio (Middle) -->
+        <div class="middle-panel">
+            <div class="status">
+                <div>pH: <span id="pH_value">0</span></div>
+                <div>Volume de Base: <span id="Vb_value">0</span> mL</div>
+            </div>
+            <div class="plot-container">
+                <div id="plot"></div>
+            </div>
+            <div class="erlenmeyer-wrapper">
+                <div class="erlenmeyer-container">
+                    <div class="help-container section-help">
+                        <span class="help-icon">?
+                            <span class="help-text">Use os botões "Adicionar" e "Remover" para controlar o volume de base adicionado. Cada clique adiciona ou remove o volume definido na alíquota. O ponto vermelho no gráfico mostra sua posição atual na curva de titulação.</span>
+                        </span>
+                    </div>
+                    <div class="laboratory-surface"></div>
+                    <svg id="erlenmeyer-svg" width="200" height="300" viewBox="0 0 300 550">
+                        <defs>
+                            <!-- Gradiente da bureta (incolor/azul claro) -->
+                            <linearGradient id="buretSolutionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color: #a6cfff; stop-opacity: 0.3" />
+                                <stop offset="50%" style="stop-color: #a6cfff; stop-opacity: 0.3" />
+                                <stop offset="100%" style="stop-color: #a6cfff; stop-opacity: 0.3" />
+                            </linearGradient>
+                            <!-- Vidro da bureta -->
+                            <linearGradient id="buretGlass" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#bdc3c7;stop-opacity:0.9" />
+                                <stop offset="35%" style="stop-color:#ecf0f1;stop-opacity:0.7" />
+                                <stop offset="65%" style="stop-color:#ecf0f1;stop-opacity:0.7" />
+                                <stop offset="100%" style="stop-color:#bdc3c7;stop-opacity:0.9" />
+                            </linearGradient>
+                            <!-- Vidro do erlenmeyer -->
+                            <linearGradient id="erlenmeyerGlass" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#bdc3c7;stop-opacity:0.8" />
+                                <stop offset="30%" style="stop-color:#ecf0f1;stop-opacity:0.5" />
+                                <stop offset="70%" style="stop-color:#ecf0f1;stop-opacity:0.5" />
+                                <stop offset="100%" style="stop-color:#bdc3c7;stop-opacity:0.8" />
+                            </linearGradient>
+                            <!-- Brilho do vidro -->
+                            <linearGradient id="glassHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:white;stop-opacity:0.8" />
+                                <stop offset="40%" style="stop-color:white;stop-opacity:0.2" />
+                                <stop offset="100%" style="stop-color:white;stop-opacity:0" />
+                            </linearGradient>
+                            <!-- Gradiente da solução no erlenmeyer (varia conforme pH) -->
+                            <linearGradient id="solutionGradient" x1="0%" y1="0%" x2="100%" y2="0%" gradientTransform="rotate(15)">
+                                <stop offset="0%" style="stop-color:#c8e6ff;stop-opacity:0.8" />
+                                <stop offset="50%" style="stop-color:#c8e6ff;stop-opacity:0.8" />
+                                <stop offset="100%" style="stop-color:#c8e6ff;stop-opacity:0.8" />
+                            </linearGradient>
+                            <!-- Sombra -->
+                            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                                <feOffset dx="2" dy="4" result="offsetblur" />
+                                <feComponentTransfer>
+                                    <feFuncA type="linear" slope="0.3" />
+                                </feComponentTransfer>
+                                <feMerge>
+                                    <feMergeNode />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+                        <!-- Bureta -->
+                        <ellipse cx="150" cy="500" rx="70" ry="10" fill="rgba(0,0,0,0.15)" filter="url(#blur)" />
+                        <rect x="140" y="20" width="20" height="200" fill="url(#buretGlass)" stroke="#95a5a6" stroke-width="1.5" rx="2" ry="2" />
+                        <rect id="buretSolution" x="142" y="40" width="16" height="180" fill="url(#buretSolutionGradient)" stroke="none" />
+                        <rect x="143" y="40" width="5" height="160" fill="url(#glassHighlight)" opacity="0.4" />
+                        <ellipse cx="150" cy="20" rx="12" ry="4" fill="#ecf0f1" stroke="#95a5a6" stroke-width="1.5" />
+                        <ellipse cx="150" cy="20" rx="8" ry="2" fill="#bdc3c7" stroke="none" />
+                        <!-- Marcas da bureta -->
+                        <line x1="150" y1="40" x2="140" y2="40" stroke="#95a5a6" stroke-width="1" />
+                        <line x1="150" y1="60" x2="140" y2="60" stroke="#95a5a6" stroke-width="1" />
+                        <line x1="150" y1="80" x2="140" y2="80" stroke="#95a5a6" stroke-width="1" />
+                        <line x1="150" y1="100" x2="140" y2="100" stroke="#95a5a6" stroke-width="1" />
+                        <line x1="150" y1="120" x2="140" y2="120" stroke="#95a5a6" stroke-width="1" />
+                        <line x1="150" y1="140" x2="140" y2="140" stroke="#95a5a6" stroke-width="1" />
+                        <line x1="150" y1="160" x2="140" y2="160" stroke="#95a5a6" stroke-width="1" />
+                        <line x1="150" y1="180" x2="140" y2="180" stroke="#95a5a6" stroke-width="1" />
+                        <line x1="150" y1="200" x2="140" y2="200" stroke="#95a5a6" stroke-width="1" />
+                        <!-- Registro -->
+                        <rect x="148" y="220" width="5" height="15" fill="url(#buretGlass)" stroke="#95a5a6" stroke-width="1.5" rx="2" ry="2" />
+                        <circle cx="150" cy="220" r="5" fill="#bdc3c7" stroke="#7f8c8d" stroke-width="1.5" />
+                        <circle cx="150" cy="220" r="3" fill="#95a5a6" stroke="none" />
+                        <line x1="150" y1="220" x2="166" y2="220" stroke="#7f8c8d" stroke-width="1.5" />
+                        <!-- Gota animada -->
+                        <path id="droplet" d="M150 224 Q149 228 150 232 Q151 228 150 224" fill="#3498db" fill-opacity="0.9" stroke="#2980b9" stroke-width="0.5">
+                            <animate attributeName="opacity" values="0.9;0;0.9" dur="3s" repeatCount="indefinite" />
+                            <animate attributeName="d" values="M150 224 Q149 228 150 232 Q151 228 150 224;M150 224 Q149 236 150 248 Q151 236 150 224;M150 224 Q149 228 150 232 Q151 228 150 224" dur="3s" repeatCount="indefinite" />
+                        </path>
+                        <!-- Erlenmeyer -->
+                        <path d="M80 450 L220 450 L165 250 L135 250 Z" fill="url(#erlenmeyerGlass)" filter="url(#shadow)" />
+                        <path d="M80 450 L220 450 L165 250 L135 250 Z" fill="none" stroke="#95a5a6" stroke-width="2" />
+                        <path d="M135 250 L80 450 L110 400 L125 270 Z" fill="url(#glassHighlight)" opacity="0.3" />
+                        <path d="M135 250 L135 235 L165 235 L165 250" fill="#ecf0f1" fill-opacity="0.7" stroke="#95a5a6" stroke-width="1.5" />
+                        <ellipse cx="150" cy="235" rx="15" ry="5" fill="#bdc3c7" stroke="#95a5a6" stroke-width="1.5" />
+                        <ellipse cx="150" cy="235" rx="12" ry="3" fill="#ecf0f1" stroke="none" />
+                        <!-- Algumas marcações no erlenmeyer (exemplo) -->
+                        <line x1="93" y1="400" x2="103" y2="400" stroke="#95a5a6" stroke-width="1.5" />
+                        <line x1="107" y1="350" x2="117" y2="350" stroke="#95a5a6" stroke-width="1.5" />
+                        <line x1="122" y1="300" x2="132" y2="300" stroke="#95a5a6" stroke-width="1.5" />
+                        <!-- Recorte interno do erlenmeyer (para preencher com a solução) -->
+                        <clipPath id="erlenmeyer-area">
+                            <path d="M81 449 L219 449 L164 251 L136 251 Z" />
+                        </clipPath>
+                        <g clip-path="url(#erlenmeyer-area)">
+                            <rect id="solution" x="80" y="400" width="140" height="80" fill="url(#solutionGradient)" />
+                            <path id="meniscus" d="M80 400 Q150 392 220 400" stroke="#3498db" stroke-width="1" fill="url(#solutionGradient)" />
+                        </g>
+                    </svg>
+                    <!-- Botões da bureta -->
+                    <div class="buret-controls">
+                        <button class="buret-btn add-btn" id="addBtn">Adicionar</button>
+                        <button class="buret-btn remove-btn" id="removeBtn">Remover</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de indicadores (Right) -->
+        <div class="indicator-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>
+                            Indicador
+                            <div class="help-container">
+                                <span class="help-icon">?
+                                    <span class="help-text">Clique em um indicador para selecioná-lo. O indicador ideal deve mudar de cor próximo ao ponto de equivalência da titulação. Observe os limites de pH para cada indicador para selecionar o mais adequado.</span>
+                                </span>
+                            </div>
+                        </th>
+                        <th>pH (-)</th>
+                        <th>pH (+)</th>
+                        <th>Cor em pH ácido</th>
+                        <th>Cor em pH básico</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Cada <tr> tem data-* para pH e cores. Ajuste conforme desejar. -->
+                    <tr data-indicator="vermelho_cresol_1" data-ph-low="0.2" data-ph-high="1.8" data-color-acid="red" data-color-base="yellow">
+                        <td>Vermelho de Cresol 1</td>
+                        <td>0,2</td>
+                        <td>1,8</td>
+                        <td style="background-color: red; color: white;">vermelho</td>
+                        <td style="background-color: yellow;">amarelo</td>
+                    </tr>
+                    <tr data-indicator="azul_timol_1" data-ph-low="1.2" data-ph-high="2.8" data-color-acid="red" data-color-base="yellow">
+                        <td>Azul de Timol 1</td>
+                        <td>1,2</td>
+                        <td>2,8</td>
+                        <td style="background-color: red; color: white;">vermelho</td>
+                        <td style="background-color: yellow;">amarelo</td>
+                    </tr>
+                    <tr data-indicator="azul_bromofenol" data-ph-low="3.0" data-ph-high="4.6" data-color-acid="yellow" data-color-base="blue">
+                        <td>Azul de Bromofenol</td>
+                        <td>3,0</td>
+                        <td>4,6</td>
+                        <td style="background-color: yellow;">amarelo</td>
+                        <td style="background-color: blue; color: white;">azul</td>
+                    </tr>
+                    <tr data-indicator="vermelho_congo" data-ph-low="3.0" data-ph-high="5.0" data-color-acid="blue" data-color-base="red">
+                        <td>Vermelho de Congo</td>
+                        <td>3,0</td>
+                        <td>5,0</td>
+                        <td style="background-color: blue; color: white;">azul</td>
+                        <td style="background-color: red; color: white;">vermelho</td>
+                    </tr>
+                    <tr data-indicator="laranjado_metila" data-ph-low="3.1" data-ph-high="4.4" data-color-acid="red" data-color-base="yellow">
+                        <td>Laranjado de Metila</td>
+                        <td>3,1</td>
+                        <td>4,4</td>
+                        <td style="background-color: red; color: white;">vermelho</td>
+                        <td style="background-color: yellow;">amarelo</td>
+                    </tr>
+                    <tr data-indicator="verde_bromocresol" data-ph-low="3.8" data-ph-high="5.4" data-color-acid="yellow" data-color-base="blue">
+                        <td>Verde de Bromocresol</td>
+                        <td>3,8</td>
+                        <td>5,4</td>
+                        <td style="background-color: yellow;">amarelo</td>
+                        <td style="background-color: blue; color: white;">azul</td>
+                    </tr>
+                    <tr data-indicator="vermelho_metila" data-ph-low="4.2" data-ph-high="6.3" data-color-acid="red" data-color-base="yellow">
+                        <td>Vermelho de Metila</td>
+                        <td>4,2</td>
+                        <td>6,3</td>
+                        <td style="background-color: red; color: white;">vermelho</td>
+                        <td style="background-color: yellow;">amarelo</td>
+                    </tr>
+                    <tr data-indicator="litmus" data-ph-low="4.5" data-ph-high="8.3" data-color-acid="red" data-color-base="blue">
+                        <td>Litmus</td>
+                        <td>4,5</td>
+                        <td>8,3</td>
+                        <td style="background-color: red; color: white;">vermelho</td>
+                        <td style="background-color: blue; color: white;">azul</td>
+                    </tr>
+                    <tr data-indicator="purpura_bromocresol" data-ph-low="5.2" data-ph-high="6.8" data-color-acid="yellow" data-color-base="purple">
+                        <td>Púrpura de Bromocresol</td>
+                        <td>5,2</td>
+                        <td>6,8</td>
+                        <td style="background-color: yellow;">amarelo</td>
+                        <td style="background-color: purple; color: white;">roxo</td>
+                    </tr>
+                    <tr data-indicator="azul_bromotimol" data-ph-low="6.0" data-ph-high="7.6" data-color-acid="yellow" data-color-base="blue">
+                        <td>Azul de Bromotimol</td>
+                        <td>6,0</td>
+                        <td>7,6</td>
+                        <td style="background-color: yellow;">amarelo</td>
+                        <td style="background-color: blue; color: white;">azul</td>
+                    </tr>
+                    <tr data-indicator="vermelho_fenol" data-ph-low="6.4" data-ph-high="8.0" data-color-acid="yellow" data-color-base="red">
+                        <td>Vermelho de Fenol</td>
+                        <td>6,4</td>
+                        <td>8,0</td>
+                        <td style="background-color: yellow;">amarelo</td>
+                        <td style="background-color: red; color: white;">vermelho</td>
+                    </tr>
+                    <tr data-indicator="vermelho_cresol_2" data-ph-low="7.2" data-ph-high="8.8" data-color-acid="yellow" data-color-base="red">
+                        <td>Vermelho de Cresol 2</td>
+                        <td>7,2</td>
+                        <td>8,8</td>
+                        <td style="background-color: yellow;">amarelo</td>
+                        <td style="background-color: red; color: white;">vermelho</td>
+                    </tr>
+                    <tr data-indicator="azul_timol_2" data-ph-low="8.0" data-ph-high="9.6" data-color-acid="yellow" data-color-base="blue">
+                        <td>Azul de Timol 2</td>
+                        <td>8,0</td>
+                        <td>9,6</td>
+                        <td style="background-color: yellow;">amarelo</td>
+                        <td style="background-color: blue; color: white;">azul</td>
+                    </tr>
+                    <tr data-indicator="fenolftaleina" data-ph-low="8.3" data-ph-high="10.0" data-color-acid="#f5f5f5" data-color-base="#D70040">
+                        <td>Fenolftaleína</td>
+                        <td>8,3</td>
+                        <td>10,0</td>
+                        <td style="background-color: #f5f5f5;">incolor</td>
+                        <td style="background-color: #D70040; color: white;">carmim</td>
+                    </tr>
+                    <tr data-indicator="timolftaleina" data-ph-low="9.3" data-ph-high="10.5" data-color-acid="#f5f5f5" data-color-base="blue">
+                        <td>Timolftaleína</td>
+                        <td>9,3</td>
+                        <td>10,5</td>
+                        <td style="background-color: #f5f5f5;">incolor</td>
+                        <td style="background-color: blue; color: white;">azul</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        Projeto desenvolvido pelo Prof. Vinicius Kartnaller (DQA-IQ-UFRJ). Para mais informações ou relatar algum problema com a página, entrar em contato por kartnaller@iq.ufrj.br.
+    </footer>
+
+    <script>
+        // ------------------------------------------------------
+        // VARIÁVEIS GLOBAIS E CONFIGURAÇÕES
+        // ------------------------------------------------------
+        let currentVb = 0; // volume de base adicionado
+        let pHData = [];
+        let VbData = [];
+        // Indicador selecionado (padrão)
+        let selectedIndicator = {
+            key: "fenolftaleina",
+            pHLower: 8.3,
+            pHUpper: 10.0,
+            colorBelow: "#f5f5f5",
+            colorAbove: "#D70040"
+        };
+
+        // ------------------------------------------------------
+        // CÁLCULO DE pH E GERAÇÃO DE CURVA
+        // ------------------------------------------------------
+        function calculatePH(Vb) {
+            // Se não temos dados de curva, geramos agora
+            if (VbData.length === 0 || pHData.length === 0) {
+                generateCurve();
+            }
+            
+            // Limita Vb a 0 (mínimo)
+            if (Vb < 0) return pHData[0]; 
+            
+            // Se Vb está além do máximo, retornamos o último pH
+            if (Vb > VbData[VbData.length - 1]) {
+                return pHData[pHData.length - 1];
+            }
+            
+            // Encontra os pontos de interpolação
+            for (let i = 0; i < VbData.length - 1; i++) {
+                if (Vb >= VbData[i] && Vb <= VbData[i + 1]) {
+                    // Interpolação linear
+                    const fator = (Vb - VbData[i]) / (VbData[i + 1] - VbData[i]);
+                    return pHData[i] + fator * (pHData[i + 1] - pHData[i]);
+                }
+            }
+            
+            // Se chegou aqui, tenta encontrar o ponto mais próximo
+            let closestIndex = 0;
+            let minDistance = Math.abs(Vb - VbData[0]);
+            
+            for (let i = 1; i < VbData.length; i++) {
+                const distance = Math.abs(Vb - VbData[i]);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestIndex = i;
+                }
+            }
+            
+            return pHData[closestIndex];
+        }
+
+        function calculatePHDirect(Vb) {
+            const Ka = parseFloat(document.getElementById('Ka').value);
+            const Ca = parseFloat(document.getElementById('Ca').value);
+            const Va = parseFloat(document.getElementById('Va').value);
+            const Cb = parseFloat(document.getElementById('Cb').value);
+            
+            const VaLitros = Va / 1000;
+            const Kw = 1e-14;
+            const pKa = -Math.log10(Ka);
+            
+            // Mols iniciais
+            const nAcid = Ca * VaLitros;
+            const nBase = Cb * (Vb / 1000);
+            
+            // Volume total em litros
+            const Vtotal = VaLitros + (Vb / 1000);
+            
+            // Fração titulada fi
+            const fi = nBase / nAcid;
+            
+            // Busca binária para encontrar o pH
+            let minPH = 0;
+            let maxPH = 14;
+            let midPH;
+            const maxIteracoes = 50;
+            const tolerancia = 1e-6;
+            
+            for (let i = 0; i < maxIteracoes; i++) {
+                midPH = (minPH + maxPH) / 2;
+                
+                const H = Math.pow(10, -midPH);
+                const OH = Kw / H;
+                
+                // Fração de dissociação alpha1
+                const alpha1 = 1 / (1 + Math.pow(10, (pKa - midPH)));
+                
+                // Cálculo do fi com este pH
+                const numerador = alpha1 - ((H - OH) / Ca);
+                const denominador = 1 + ((H - OH) / Cb);
+                
+                // Verificar denominador próximo de zero
+                if (Math.abs(denominador) < 1e-10) {
+                    // Tentar outra abordagem
+                    continue;
+                }
+                
+                const fiCalculado = numerador / denominador;
+                
+                // Verificar diferença
+                const diff = fiCalculado - fi;
+                
+                if (Math.abs(diff) < tolerancia) {
+                    return midPH;
+                }
+                
+                if (diff > 0) {
+                    maxPH = midPH;
+                } else {
+                    minPH = midPH;
+                }
+            }
+            
+            // Se não convergiu, usar o valor encontrado
+            return midPH;
+        }
+
+        function calculateEquivalenceVolume() {
+            const Ca = parseFloat(document.getElementById('Ca').value);
+            const Va = parseFloat(document.getElementById('Va').value);
+            const Cb = parseFloat(document.getElementById('Cb').value);
+            const VaLiters = Va / 1000;
+            const nAcid = Ca * VaLiters;
+            const VeLiters = nAcid / Cb;
+            return VeLiters * 1000; // mL
+        }
+
+        function generateCurve() {
+            const Ka = parseFloat(document.getElementById('Ka').value);
+            const Ca = parseFloat(document.getElementById('Ca').value);
+            const Va = parseFloat(document.getElementById('Va').value);
+            const Cb = parseFloat(document.getElementById('Cb').value);
+
+            if (isNaN(Ka) || isNaN(Ca) || isNaN(Va) || isNaN(Cb) || Ka <= 0 || Ca <= 0 || Va <= 0 || Cb <= 0) {
+                alert("Verifique os valores de entrada. Todos devem ser > 0.");
+                return;
+            }
+
+            // Conversões e parâmetros
+            const VaLitros = Va / 1000;
+            const Kw = 1e-14;
+            const pKa = -Math.log10(Ka);
+
+            // Mols de ácido
+            const nAcid = Ca * VaLitros;
+
+            // Volume de equivalência em L
+            const VeLitros = nAcid / Cb;
+            // Converter para mL
+            const VeML = VeLitros * 1000;
+
+            // Vamos até 2×Ve em mL
+            const maxVbML = 2 * VeML;
+
+            // Arrays para plotar
+            pHData = [];
+            VbData = [];
+
+            // Loop em pH com passo variável para melhor detalhamento na região do salto
+            const regions = [
+                { start: 0, end: 4, step: 0.05 },          // pH baixo, passo maior
+                { start: 4, end: pKa - 1, step: 0.03 },    // Pré-buffer
+                { start: pKa - 1, end: pKa + 1, step: 0.01 }, // Região do buffer, passo menor
+                { start: pKa + 1, end: 10, step: 0.03 },   // Pós-buffer
+                { start: 10, end: 14, step: 0.05 }         // pH alto, passo maior
+            ];
+
+            for (const region of regions) {
+                for (let pH = region.start; pH <= region.end; pH += region.step) {
+                    const H = Math.pow(10, -pH);
+                    const OH = Kw / H;
+
+                    // Cálculo de alpha1 (fração de dissociação)
+                    const alpha1 = 1 / (1 + Math.pow(10, (pKa - pH)));
+
+                    // Cálculo de fi (fração titulada)
+                    const numerador = alpha1 - ((H - OH) / Ca);
+                    const denominador = 1 + ((H - OH) / Cb);
+
+                    // Se denominador é próximo de zero, ignora este ponto
+                    if (Math.abs(denominador) < 1e-10) {
+                        continue;
+                    }
+
+                    const fi = numerador / denominador;
+
+                    // Vb em L
+                    const vbLitros = fi * (Ca * VaLitros) / Cb;
+                    // Converte para mL
+                    const vbML = vbLitros * 1000;
+
+                    // Filtrar apenas 0 <= Vb <= 2×Ve
+                    if (vbML >= 0 && vbML <= maxVbML) {
+                        VbData.push(vbML);
+                        pHData.push(pH);
+                    }
+                }
+            }
+
+    // Ordenar pontos por Vb (crescente)
+    let dados = VbData.map((v, i) => ({ x: v, y: pHData[i] }));
+    dados.sort((a, b) => a.x - b.x);
+    VbData = dados.map(d => d.x);
+    pHData = dados.map(d => d.y);
+
+    // Se não encontrarmos pontos, avisa
+    if (VbData.length === 0) {
+        alert("Nenhum ponto válido foi encontrado. Verifique os parâmetros.");
+        return;
+    }
+
+    // Plotagem no Plotly
+    const trace1 = {
+        x: VbData,
+        y: pHData,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Curva de Titulação',
+        line: { color: '#007bff' }
+    };
+    const trace2 = {
+        x: [currentVb],
+        y: [calculatePH(currentVb)],
+        type: 'scatter',
+        mode: 'markers',
+        name: 'Ponto Atual',
+        marker: { size: 10, color: 'red' }
+    };
+
+    const layout = {
+        title: 'Curva de Titulação',
+        xaxis: { title: 'Volume de Base (mL)', range: [0, maxVbML] },
+        yaxis: { title: 'pH', range: [0, 14] },
+        margin: { t: 50, b: 50, l: 50, r: 50 }
+    };
+
+    Plotly.newPlot('plot', [trace1, trace2], layout).then(() => {
+        updateSolution();
+    });
+}
+
+        // ------------------------------------------------------
+        // MANIPULAÇÃO DE COR E INDICADOR
+        // ------------------------------------------------------
+        function colorNameToRGB(color) {
+            const ctx = document.createElement('canvas').getContext('2d');
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 1, 1);
+            const data = ctx.getImageData(0, 0, 1, 1).data;
+            return { r: data[0], g: data[1], b: data[2] };
+        }
+
+        function getDarkerColor(color) {
+            let r = color.r, g = color.g, b = color.b;
+            r = Math.max(0, Math.floor(r * 0.8));
+            g = Math.max(0, Math.floor(g * 0.8));
+            b = Math.max(0, Math.floor(b * 0.8));
+            return { r, g, b };
+        }
+
+        function interpolateColor(color1, color2, factor) {
+            const rgb1 = colorNameToRGB(color1);
+            const rgb2 = colorNameToRGB(color2);
+            const r = Math.round(rgb1.r + (rgb2.r - rgb1.r) * factor);
+            const g = Math.round(rgb1.g + (rgb2.g - rgb1.g) * factor);
+            const b = Math.round(rgb1.b + (rgb2.b - rgb1.b) * factor);
+            return { r, g, b };
+        }
+
+        function getSolutionColor(pH, indicator) {
+            const { pHLower, pHUpper, colorBelow, colorAbove } = indicator;
+            if (pH <= pHLower) {
+                return colorNameToRGB(colorBelow);
+            } else if (pH >= pHUpper) {
+                return colorNameToRGB(colorAbove);
+            } else {
+                const factor = (pH - pHLower) / (pHUpper - pHLower);
+                return interpolateColor(colorBelow, colorAbove, factor);
+            }
+        }
+
+        // Função simplificada para atualizar a cor da solução
+        function updateSolutionColor(colorRgb) {
+            // Garantir que temos valores RGB válidos
+            if (!colorRgb || colorRgb.r === undefined) {
+                colorRgb = {r: 200, g: 230, b: 255}; // Cor padrão azul claro
+            }
+            
+            // Cor uniforme com transparência fixa
+            const transparency = 0.2;
+            const r = colorRgb.r || 0;
+            const g = colorRgb.g || 0;
+            const b = colorRgb.b || 0;
+            
+            // Criar cor CSS
+            const colorHex = `rgba(${r}, ${g}, ${b}, ${transparency})`;
+            
+            // Aplicar a cor diretamente aos elementos SVG
+            const solution = document.getElementById('solution');
+            const meniscus = document.getElementById('meniscus');
+            
+            // Aplicar cores diretamente sem usar gradientes
+            solution.setAttribute('fill', colorHex);
+            meniscus.setAttribute('fill', colorHex);
+            meniscus.setAttribute('stroke', colorHex);
+        }
+
+        // Seleciona indicador ao clicar na tabela
+        function selectIndicatorFromRow(row) {
+            const indKey = row.dataset.indicator;
+            const pHLow = parseFloat(row.dataset.phLow.replace(',', '.'));
+            const pHHigh = parseFloat(row.dataset.phHigh.replace(',', '.'));
+            const colorAcid = row.dataset.colorAcid;
+            const colorBase = row.dataset.colorBase;
+
+            selectedIndicator = {
+                key: indKey,
+                pHLower: pHLow,
+                pHUpper: pHHigh,
+                colorBelow: colorAcid,
+                colorAbove: colorBase
+            };
+
+            // Marca a linha selecionada
+            document.querySelectorAll('.indicator-table tbody tr').forEach(tr => {
+                tr.classList.remove('selected');
+            });
+            row.classList.add('selected');
+
+            updateSolution();
+        }
+
+        // ------------------------------------------------------
+        // ANIMAÇÃO DA GOTA
+        // ------------------------------------------------------
+        function startDropAnimation() {
+            const droplet = document.getElementById('droplet');
+            const colorHex = '#a6cfff';
+            const newDrop = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            newDrop.setAttribute("d", "M150 224 Q149 228 150 232 Q151 228 150 224");
+            newDrop.setAttribute("fill", colorHex);
+            newDrop.setAttribute("stroke", colorHex);
+            newDrop.setAttribute("stroke-width", "0.5");
+            newDrop.setAttribute("fill-opacity", 0.3);
+
+            droplet.parentNode.insertBefore(newDrop, droplet);
+            let y = 232;
+            const solutionRect = document.getElementById('solution');
+            let currentSolutionY = parseInt(solutionRect.getAttribute('y')) || 370;
+
+            const fallInterval = setInterval(() => {
+                y += 5;
+                newDrop.setAttribute("d", `M150 224 Q149 ${y - 4} 150 ${y} Q151 ${y - 4} 150 224`);
+                if (y >= currentSolutionY) {
+                    clearInterval(fallInterval);
+                    newDrop.remove();
+                    // Efeito ondinha
+                    const ripple = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    ripple.setAttribute("cx", "150");
+                    ripple.setAttribute("cy", currentSolutionY);
+                    ripple.setAttribute("r", "2");
+                    ripple.setAttribute("fill", "none");
+                    ripple.setAttribute("stroke", "white");
+                    ripple.setAttribute("stroke-width", "1");
+                    ripple.setAttribute("opacity", "0.7");
+                    document.querySelector("g[clip-path]").appendChild(ripple);
+                    let radius = 2;
+                    let opacity = 0.7;
+                    const rippleInterval = setInterval(() => {
+                        radius += 2;
+                        opacity -= 0.1;
+                        ripple.setAttribute("r", radius.toString());
+                        ripple.setAttribute("opacity", opacity.toString());
+                        if (opacity <= 0 || radius > 20) {
+                            clearInterval(rippleInterval);
+                            ripple.remove();
+                        }
+                    }, 100);
+                }
+            }, 50);
+        }
+
+        // Função para adicionar alíquota simplificada
+        function addAliquot() {
+            // Converte vírgula para ponto para processamento
+            const aliquotValue = document.getElementById('aliquot').value.replace(',', '.');
+            const aliquot = parseFloat(aliquotValue);
+            
+            if (isNaN(aliquot) || aliquot < 0.01) {
+                alert("Por favor, insira uma alíquota válida maior ou igual a 0,01 mL.");
+                return;
+            }
+            
+            // Adicionar volume
+            currentVb += aliquot;
+            
+            // Atualizar elementos visuais
+            updateBuretAndSolution();
+            
+            // Iniciar animação da gota caindo
+            startDropAnimation();
+            
+            // Atualizar pH e volume
+            updateSolution();
+        }
+
+        // Função para remover alíquota simplificada
+        function removeAliquot() {
+            // Converte vírgula para ponto para processamento
+            const aliquotValue = document.getElementById('aliquot').value.replace(',', '.');
+            const aliquot = parseFloat(aliquotValue);
+            
+            if (isNaN(aliquot) || aliquot < 0.01) {
+                alert("Por favor, insira uma alíquota válida maior ou igual a 0,01 mL.");
+                return;
+            }
+            
+            // Remover volume (com limite mínimo de 0)
+            currentVb = Math.max(0, currentVb - aliquot);
+            
+            // Atualizar elementos visuais
+            updateBuretAndSolution();
+            
+            // Atualizar pH e volume
+            updateSolution();
+        }
+
+        // Nova função para atualizar a bureta e a solução com base no volume atual
+        function updateBuretAndSolution() {
+            const buretSolution = document.getElementById('buretSolution');
+            const solutionRect = document.getElementById('solution');
+            const meniscus = document.getElementById('meniscus');
+            
+            // Calcular volume de equivalência
+            const VeML = calculateEquivalenceVolume();
+            const maxVol = 2 * VeML;
+            
+            // Altura total disponível para o líquido no erlenmeyer (de 400 a 300)
+            const totalHeight = 100;
+            
+            // Calcular posição proporcional ao volume atual (entre 0 e maxVol)
+            const ratio = Math.min(1, currentVb / maxVol);
+            const newY = 400 - (ratio * totalHeight);
+            const newHeight = 450 - newY;
+            
+            // Atualizar a posição e altura do retângulo da solução
+            solutionRect.setAttribute('y', newY);
+            solutionRect.setAttribute('height', newHeight);
+            
+            // Atualizar o menisco
+            meniscus.setAttribute('d', `M80 ${newY} Q150 ${newY - 8} 220 ${newY}`);
+            
+            // Altura total da bureta (de 40 a 200)
+            const buretHeight = 180;
+            const buretRatio = Math.min(1, currentVb / maxVol);
+            const newBuretHeight = buretHeight * (1 - buretRatio);
+            const newBuretY = 40 + (buretHeight - newBuretHeight);
+            
+            // Atualizar a bureta
+            buretSolution.setAttribute('height', newBuretHeight);
+            buretSolution.setAttribute('y', newBuretY);
+        }
+
+        // Função de atualização principal simplificada
+        function updateSolution() {
+            if (currentVb < 0) currentVb = 0;
+            const pH = calculatePH(currentVb);
+            
+            // Atualizar os valores de display
+            document.getElementById('Vb_value').textContent = currentVb.toFixed(2);
+            document.getElementById('pH_value').textContent = pH.toFixed(2);
+            
+            // Atualizar o ponto atual no gráfico
+            Plotly.update('plot', { x: [[currentVb]], y: [[pH]] }, {}, [1]);
+            
+            // Obter a cor com base no pH e atualizar a solução
+            const color = getSolutionColor(pH, selectedIndicator);
+            updateSolutionColor(color);
+        }
+
+        // Simplificar a função reset
+        function resetTitration() {
+            currentVb = 0;
+            updateBuretAndSolution();
+            updateSolution();
+        }
+
+        // ------------------------------------------------------
+        // INICIALIZAÇÃO
+        // ------------------------------------------------------
+        window.onload = function () {
+            generateCurve();
+
+            document.getElementById('addBtn').addEventListener('click', addAliquot);
+            document.getElementById('removeBtn').addEventListener('click', removeAliquot);
+
+            ['Ka', 'Ca', 'Va', 'Cb'].forEach(id => {
+                document.getElementById(id).addEventListener('change', function() {
+                    currentVb = 0;
+                    generateCurve(); // Isso vai regenerar a curva e atualizar tudo
+                });
+            });
+
+            // Clique na tabela de indicadores
+            document.querySelectorAll('.indicator-table tbody tr').forEach(row => {
+                row.addEventListener('click', () => {
+                    selectIndicatorFromRow(row);
+                });
+            });
+
+            // Selecionar por padrão a Fenolftaleína (última linha do HTML)
+            const defaultRow = document.querySelector('tr[data-indicator="fenolftaleina"]');
+            if (defaultRow) {
+                selectIndicatorFromRow(defaultRow);
+            }
+
+            // Validação apenas para alíquota (sem converter para vírgula)
+            document.getElementById('aliquot').addEventListener('change', function() {
+                // Converte vírgula para ponto para validação
+                const value = parseFloat(this.value.replace(',', '.'));
+                if (isNaN(value) || value < 0.01) {
+                    alert("Por favor, insira uma alíquota válida maior ou igual a 0,01 mL.");
+                    this.value = "1"; // Restaurar para um valor válido
+                }
+            });
+        };
+    </script>
+</body>
+</html>
