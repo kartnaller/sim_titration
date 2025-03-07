@@ -1,6 +1,152 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+    <meta charset="UTF-8">
+    <title>Simuladores de Titulação</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .description {
+            max-width: 800px;
+            text-align: center;
+            margin-bottom: 40px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .simulators-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            max-width: 1200px;
+        }
+
+        .simulator-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            width: 300px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            text-align: center;
+        }
+
+        .simulator-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .simulator-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: #007bff;
+        }
+
+        .simulator-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .simulator-description {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .simulator-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .simulator-button:hover {
+            background-color: #0056b3;
+        }
+
+        footer {
+            margin-top: 50px;
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simuladores de Titulação Ácido-Base</h1>
+    
+    <div class="description">
+        <p>Bem-vindo aos simuladores de titulação desenvolvidos pelo Departamento de Química Analítica do IQ-UFRJ. 
+        Escolha abaixo o tipo de titulação que deseja simular. Os simuladores permFitem explorar interativamente 
+        as curvas de titulação e aprender sobre os indicadores adequados para cada caso.</p>
+    </div>
+    
+    <div class="simulators-container">
+        <div class="simulator-card">
+            <div class="simulator-icon">🧪</div>
+            <div class="simulator-title">Ácido (Monoprótico) + Base Forte</div>
+            <div class="simulator-description">
+                Explore o comportamento do sistema contendo um ácido (titulado) e uma base forte (titulante) alterando os parâmetros da titulação e observe como o pH varia ao longo da titulação e como as cores dos indicadores mudam de acordo com esses valores.
+            </div>
+            <a href="acido-mono.html" class="simulator-button">Iniciar Simulação</a>
+        </div>
+        
+        <div class="simulator-card">
+            <div class="simulator-icon">⚗️</div>
+            <div class="simulator-title">Base (Monobásica) + Ácido Forte</div>
+            <div class="simulator-description">
+                Explore o comportamento do sistema contendo uma base (titulado) e um ácido forte (titulante) alterando os parâmetros da titulação e observe como o pH varia ao longo da titulação e como as cores dos indicadores mudam de acordo com esses valores.
+            </div>
+            <a href="base-mono.html" class="simulator-button">Iniciar Simulação</a>
+        </div>
+        
+        <div class="simulator-card">
+            <div class="simulator-icon">🔬</div>
+            <div class="simulator-title">Mais Titulações</div>
+            <div class="simulator-description">
+                Em breve, novos simuladores estarão disponíveis, incluindo:
+                <ul style="text-align: left; padding-left: 20px;">
+                    <li>Ácido Forte + Base Forte</li>
+                    <li>Ácido Poliprótico</li>
+                    <li>Titulações de Precipitação</li>
+                </ul>
+            </div>
+            <button class="simulator-button" style="background-color: #888;" disabled>Em breve</button>
+        </div>
+    </div>
+    
+    <footer>
+        Projeto desenvolvido pelo Prof. Vinicius Kartnaller (DQA-IQ-UFRJ) em utilização dos modelos de LLM Grok 3, Claude 3.7 Sonnet e GPT o3-mini em diversos momentos do desenvolvimento.
+    </footer>
+</body>
+</html> <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
     <meta charset="UTF-8" />
     <title>Simulador de Titulação Ácido-Base</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
